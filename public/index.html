@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Productos </title>
+    <style>
+        :root{
+            --bg-grad-a: #667eea;
+            --bg-grad-b: #764ba2;
+            --card-bg: #ffffff;
+            --muted: #6b7280;
+            --accent: #667eea;
+            --success: #16a34a;
+            --danger: #ef4444;
+            --glass: rgba(255,255,255,0.08);
+            --max-width: 1100px;
+        }
+
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%}
+
+        body{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg,var(--bg-grad-a) 0%,var(--bg-grad-b) 100%);
+            min-height:100vh;padding:28px;display:flex;align-items:flex-start;justify-content:center;color:#111;
+        }
+
+        .container{width:100%;max-width:var(--max-width)}
+
+        header{color:white;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+        header .brand{display:flex;align-items:center;gap:12px}
+        header h1{font-size:1.4rem;text-shadow:1px 1px 3px rgba(0,0,0,0.25)}
+        header .subtitle{opacity:0.95;font-size:0.95rem}
+
+        /* Top controls */
+        .top-controls{display:flex;gap:12px;align-items:center}
+        .search-input{padding:10px 12px;border-radius:10px;border:2px solid rgba(255,255,255,0.15);background:transparent;color:white;min-width:220px}
+        .select-order{padding:10px;border-radius:10px;border:2px solid rgba(255,255,255,0.12);background:transparent;color:white}
+
+        .main-content{display:grid;grid-template-columns:1fr 1.2fr;gap:22px}
+
+        .card{background:var(--card-bg);border-radius:14px;padding:22px;box-shadow:0 8px 30px rgba(8,15,52,0.25)}
+        .form-card h2,.products-card h2{color:var(--accent);margin-bottom:12px;font-size:1.1rem}
+
+        .form-group{margin-bottom:14px}
+        label{display:block;margin-bottom:6px;color:#333;font-weight:600;font-size:0.95rem}
+
+        input,textarea,select{width:100%;padding:10px 12px;border:1px solid #e6e9ef;border-radius:10px;font-size:0.95rem}
+        input:focus,textarea:focus,select:focus{outline:none;box-shadow:0 4px 18px rgba(102,126,234,0.18);border-color:var(--accent)}
+
+        .actions-row{display:flex;gap:10px;align-items:center}
+        .btn{cursor:pointer;border-radius:10px;padding:10px 14px;font-weight:700;border:none}
+        .btn-primary{background:linear-gradient(90deg,var(--bg-grad-a),var(--bg-grad-b));color:#fff}
+        .btn-ghost{background:transparent;border:1px solid #e6e9ef;color:#333}
+        .btn:focus{outline:2px solid rgba(102,126,234,0.22)}
+
+        /* Products */
+        .products-list{display:grid;gap:12px}
+        .product-item{display:flex;gap:14px;align-items:flex-start;padding:14px;border-radius:12px;background:#fbfdff;border:1px solid #eef3ff}
+        .product-thumb{width:84px;height:64px;background:linear-gradient(135deg,var(--bg-grad-a),var(--bg-grad-b));border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+        .product-body{flex:1}
+        .product-header{display:flex;justify-content:space-between;align-items:center}
+        .product-name{font-size:1rem;font-weight:700;color:#0f172a}
+        .product-price{color:var(--accent);font-weight:800}
+        .product-description{color:var(--muted);font-size:0.92rem;margin-top:8px}
+        .product-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+        .product-stock{background:#eef2ff;color:var(--accent);padding:6px 10px;border-radius:999px;font-weight:700}
+        .product-actions{display:flex;gap:8px}
+        .btn-edit{background:#06b6d4;color:#04292b;padding:8px 12px;border-radius:8px}
+        .btn-delete{background:var(--danger);color:white;padding:8px 12px;border-radius:8px}
+
+        .empty-state{text-align:center;padding:40px;color:var(--muted)}
+        .loading{text-align:center;padding:30px;color:var(--accent)}
+
+        .alert{padding:12px;border-radius:8px;margin-bottom:12px;font-weight:600}
+        .alert-success{background:#ecfdf5;color:var(--success);border:1px solid #bbf7d0}
+        .alert-error{background:#fff1f2;color:var(--danger);border:1px solid #fecaca}
+
+        @media (max-width:900px){.main-content{grid-template-columns:1fr}.top-controls{flex-direction:column;align-items:stretch}.search-input{width:100%}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐳 CRUD Productos con Docker</h1>
+            <p class="subtitle">Aplicación con Node.js + PostgreSQL</p>
+        </header>
+
+        <div class="top-controls" style="margin-bottom:18px">
+            <div class="brand">
+                <h1>🐳 CRUD Productos</h1>
+                <div class="subtitle">Node.js + PostgreSQL • Demo</div>
+            </div>
+
+            <div style="flex:1"></div>
+
+            <div style="display:flex;gap:12px;align-items:center">
+                <input id="searchInput" class="search-input" placeholder="Buscar producto por nombre..." aria-label="Buscar producto">
+                <select id="orderSelect" class="select-order" aria-label="Ordenar productos">
+                    <option value="newest">Más recientes</option>
+                    <option value="price-asc">Precio: menor primero</option>
+                    <option value="price-desc">Precio: mayor primero</option>
+                    <option value="stock-asc">Stock: menor primero</option>
+                    <option value="stock-desc">Stock: mayor primero</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Formulario -->
+            <div class="card form-card">
+                <h2 id="form-title">➕ Agregar Producto</h2>
+                <div id="alert-container"></div>
+                <form id="productForm">
+                    <div class="form-group">
+                        <label for="nombre">Nombre *</label>
+                        <input type="text" id="nombre" required placeholder="Ej: Laptop Dell">
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <textarea id="descripcion" placeholder="Descripción del producto..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="precio">Precio ($) *</label>
+                        <input type="number" id="precio" step="0.01" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="stock">Stock *</label>
+                        <input type="number" id="stock" required placeholder="0">
+                    </div>
+                    <div class="actions-row">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Agregar Producto</button>
+                        <button type="button" class="btn btn-ghost" id="cancelBtn" style="display: none;">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de productos -->
+            <div class="card products-card">
+                <h2>📦 Lista de Productos</h2>
+                <div id="products-container">
+                    <div class="loading">Cargando productos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/productos';
+        let editingId = null;
+        let productsCache = [];
+
+        // Elementos del DOM
+        const form = document.getElementById('productForm');
+        const productsContainer = document.getElementById('products-container');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const alertContainer = document.getElementById('alert-container');
+        const searchInput = document.getElementById('searchInput');
+        const orderSelect = document.getElementById('orderSelect');
+
+        // Inicial
+        loadProducts();
+
+        // Eventos
+        form.addEventListener('submit', handleFormSubmit);
+        cancelBtn.addEventListener('click', () => { form.reset(); resetForm(); });
+        searchInput.addEventListener('input', renderFiltered);
+        orderSelect.addEventListener('change', renderFiltered);
+
+        // Delegación para acciones en productos
+        productsContainer.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit');
+            const delBtn = e.target.closest('.btn-delete');
+            const item = e.target.closest('.product-item');
+            if (editBtn && item) {
+                const id = item.dataset.id;
+                const product = productsCache.find(p => String(p.id) === String(id));
+                if (product) startEdit(product);
+            }
+            if (delBtn && item) {
+                const id = item.dataset.id;
+                deleteProduct(id);
+            }
+        });
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const producto = {
+                nombre: document.getElementById('nombre').value.trim(),
+                descripcion: document.getElementById('descripcion').value.trim(),
+                precio: parseFloat(document.getElementById('precio').value) || 0,
+                stock: parseInt(document.getElementById('stock').value) || 0
+            };
+
+            try {
+                if (editingId) {
+                    await updateProduct(editingId, producto);
+                } else {
+                    await createProduct(producto);
+                }
+                form.reset();
+                resetForm();
+                await loadProducts();
+            } catch (err) {
+                console.error(err);
+                showAlert('Error al guardar el producto', 'error');
+            }
+        }
+
+        async function loadProducts() {
+            productsContainer.innerHTML = '<div class="loading">Cargando productos...</div>';
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error('Network response not ok');
+                const products = await res.json();
+                productsCache = Array.isArray(products) ? products : [];
+                renderFiltered();
+            } catch (err) {
+                console.error(err);
+                productsContainer.innerHTML = '<div class="empty-state">Error al cargar productos</div>';
+            }
+        }
+
+        async function createProduct(producto) {
+            const res = await fetch(API_URL, {method: 'POST',headers: {'Content-Type':'application/json'},body: JSON.stringify(producto)});
+            if (res.ok) showAlert('Producto creado exitosamente','success');
+            else showAlert('No fue posible crear el producto','error');
+            return res.json();
+        }
+
+        async function updateProduct(id, producto) {
+            const res = await fetch(`${API_URL}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(producto)});
+            if (res.ok) showAlert('Producto actualizado exitosamente','success');
+            else showAlert('No fue posible actualizar el producto','error');
+            return res.json();
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+            try {
+                const res = await fetch(`${API_URL}/${id}`,{method:'DELETE'});
+                if (res.ok) {
+                    showAlert('Producto eliminado exitosamente','success');
+                    await loadProducts();
+                } else {
+                    showAlert('No fue posible eliminar el producto','error');
+                }
+            } catch (err) {
+                console.error(err);
+                showAlert('Error al eliminar el producto','error');
+            }
+        }
+
+        function startEdit(product) {
+            editingId = product.id;
+            document.getElementById('nombre').value = product.nombre || '';
+            document.getElementById('descripcion').value = product.descripcion || '';
+            document.getElementById('precio').value = product.precio || '';
+            document.getElementById('stock').value = product.stock || '';
+            formTitle.textContent = '✏️ Editar Producto';
+            submitBtn.textContent = 'Actualizar Producto';
+            cancelBtn.style.display = 'inline-block';
+            window.scrollTo({top:0,behavior:'smooth'});
+        }
+
+        function resetForm() {
+            editingId = null;
+            formTitle.textContent = '➕ Agregar Producto';
+            submitBtn.textContent = 'Agregar Producto';
+            cancelBtn.style.display = 'none';
+        }
+
+        function renderFiltered() {
+            const q = (searchInput.value || '').toLowerCase().trim();
+            let list = productsCache.slice();
+            // filtro
+            if (q) list = list.filter(p => (p.nombre || '').toLowerCase().includes(q));
+            // orden
+            const order = orderSelect.value;
+            if (order === 'price-asc') list.sort((a,b) => a.precio - b.precio);
+            else if (order === 'price-desc') list.sort((a,b) => b.precio - a.precio);
+            else if (order === 'stock-asc') list.sort((a,b) => a.stock - b.stock);
+            else if (order === 'stock-desc') list.sort((a,b) => b.stock - a.stock);
+            else list.reverse(); // newest: assuming API returns oldest->newest, invert for recent first
+
+            renderProducts(list);
+        }
+
+        function renderProducts(products) {
+            productsContainer.innerHTML = '';
+            if (!products || products.length === 0) {
+                productsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p style="font-size:2.6rem">📦</p>
+                        <p>No hay productos registrados</p>
+                        <p style="font-size:0.9rem;margin-top:8px;color:var(--muted)">Agrega tu primer producto usando el formulario</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const listEl = document.createElement('div');
+            listEl.className = 'products-list';
+
+            products.forEach(product => {
+                const item = document.createElement('div');
+                item.className = 'product-item';
+                item.dataset.id = product.id;
+
+                const thumb = document.createElement('div');
+                thumb.className = 'product-thumb';
+                // iniciales como placeholder
+                const initials = (product.nombre || '').split(' ').map(s=>s[0]).join('').substring(0,2).toUpperCase();
+                thumb.textContent = initials || 'PR';
+
+                const body = document.createElement('div');
+                body.className = 'product-body';
+
+                const header = document.createElement('div');
+                header.className = 'product-header';
+                const name = document.createElement('div');
+                name.className = 'product-name';
+                name.textContent = product.nombre || '--';
+                const price = document.createElement('div');
+                price.className = 'product-price';
+                price.textContent = `$${(parseFloat(product.precio)||0).toFixed(2)}`;
+                header.appendChild(name);
+                header.appendChild(price);
+
+                body.appendChild(header);
+
+                if (product.descripcion) {
+                    const desc = document.createElement('div');
+                    desc.className = 'product-description';
+                    desc.textContent = product.descripcion;
+                    body.appendChild(desc);
+                }
+
+                const footer = document.createElement('div');
+                footer.className = 'product-footer';
+                const stock = document.createElement('div');
+                stock.className = 'product-stock';
+                stock.textContent = `Stock: ${product.stock} unidades`;
+
+                const actions = document.createElement('div');
+                actions.className = 'product-actions';
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-edit';
+                editBtn.type = 'button';
+                editBtn.textContent = 'Editar';
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-delete';
+                delBtn.type = 'button';
+                delBtn.textContent = 'Eliminar';
+
+                actions.appendChild(editBtn);
+                actions.appendChild(delBtn);
+
+                footer.appendChild(stock);
+                footer.appendChild(actions);
+
+                body.appendChild(footer);
+
+                item.appendChild(thumb);
+                item.appendChild(body);
+
+                listEl.appendChild(item);
+            });
+
+            productsContainer.appendChild(listEl);
+        }
+
+        function showAlert(message, type){
+            alertContainer.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(()=>{ alertContainer.innerHTML = ''; },3000);
+        }
+    </script>
+</body>
+</html>
